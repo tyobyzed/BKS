@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Guru - Rekap Pelanggaran Siswa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: url('assets/images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .overlay {
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    .fade-in {
+      animation: fadeIn 2s ease-in;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(20px);}
+      100% { opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center">
+
+  <div class="overlay p-10 rounded-2xl shadow-2xl text-center max-w-md fade-in">
+    <img src="assets/images/logo-sekolah.png" alt="Logo Sekolah" class="mx-auto mb-6 w-20 rounded-full">
+    <h1 class="text-2xl font-bold mb-6 text-blue-600">Login Guru</h1>
+
+    <form id="loginForm" class="flex flex-col gap-4">
+      <input type="text" id="username" placeholder="Username" class="border p-3 rounded-lg" required>
+      <input type="password" id="password" placeholder="Password" class="border p-3 rounded-lg" required>
+      <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 rounded-full transition duration-300">
+        Login
+      </button>
+    </form>
+
+    <p id="errorMsg" class="text-red-500 mt-4 hidden">Username atau Password salah!</p>
+
+    <a href="index.html" class="mt-6 inline-block text-sm text-gray-600 hover:text-blue-600">Kembali ke Beranda</a>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      // Username dan Password disini ya!
+      if (username === "guru" && password === "123") {
+        window.location.href = "guru.html";
+      } else {
+        errorMsg.classList.remove('hidden');
+      }
+    });
+  </script>
+
+</body>
+</html>

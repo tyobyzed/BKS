@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Siswa - Rekap Pelanggaran</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: url('assets/images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .overlay {
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    .fade-in {
+      animation: fadeIn 2s ease-in;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center">
+
+  <div class="overlay p-10 rounded-2xl shadow-2xl text-center max-w-md fade-in">
+    <img src="assets/images/logo-sekolah.png" alt="Logo Sekolah" class="mx-auto mb-6 w-20 rounded-full">
+    <h1 class="text-2xl font-bold mb-6 text-blue-600">Login Siswa</h1>
+
+    <form id="loginForm" class="flex flex-col gap-4">
+      <input type="text" id="namaSiswa" placeholder="Masukkan Nama Siswa" class="border p-3 rounded-lg" required>
+      <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 rounded-full transition duration-300">
+        Login
+      </button>
+    </form>
+
+    <p id="errorMsg" class="text-red-500 mt-4 hidden">Nama siswa tidak ditemukan!</p>
+
+    <a href="index.html" class="mt-6 inline-block text-sm text-gray-600 hover:text-green-600">Kembali ke Beranda</a>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const spreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRaR4M9iuKSDqX_k17xuuleVPiyEKtAayMUWl2iL01-MfoxgOCvPL-hjl1V6RGqHBLPs5V-vgfAi5el/pub?gid=1365700531&single=true&output=tsv';
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const namaSiswa = document.getElementById('namaSiswa').value.trim().toLowerCase();
+      if (namaSiswa !== "") {
+        const siswaData = await fetchData();
+        const siswa = siswaData.find(d => d['Nama Siswa'].toLowerCase() === namaSiswa);
+        
+        if (siswa) {
+          // Simpan Nama Siswa dan NISN di localStorage
+          localStorage.setItem('namaSiswa', siswa['Nama Siswa']);
+          localStorage.setItem('nisn', siswa['NISN']);
+          window.location.href = "siswa.html";
+        } else {
+          errorMsg.classList.remove('hidden');
+        }
+      } else {
+        errorMsg.classList.remove('hidden');
+      }
+    });
+
+    async function fetchData() {
+      const res = await fetch(spreadsheetURL);
+      const data = await res.text();
+      const rows = data.trim().split('\n').map(r => r.split('\t'));
+      
+      const headers = rows.shift();
+      return rows.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      });
+    }
+  </script>
+
+</body>
+</html>

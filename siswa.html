@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Siswa - Rekap Pelanggaran</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f8f9fa;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-green-600 mb-2">Dashboard Siswa</h1>
+        <p id="siswaNama" class="text-gray-600">Selamat datang!</p>
+      </div>
+      <a href="index.html" class="text-sm text-gray-500 hover:text-green-500">← Logout</a>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+      <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        <label for="filterNama" class="font-semibold text-gray-700">Filter Nama Siswa:</label>
+        <select id="filterNama" class="border p-2 rounded-lg">
+          <option value="">Semua</option>
+        </select>
+      </div>
+
+      <div class="relative h-64 md:h-96 mb-8">
+        <canvas id="chartPelanggaran"></canvas>
+      </div>
+
+      <!-- Tabel Rekap Jumlah Pelanggaran -->
+      <div class="overflow-x-auto mb-8">
+        <h2 class="text-lg font-bold text-gray-700 mb-2">Rekap Jumlah Pelanggaran</h2>
+        <table class="w-full table-auto border-collapse border border-gray-300">
+          <thead class="bg-green-100">
+            <tr>
+              <th class="border p-2">Nama Siswa</th>
+              <th class="border p-2">Jumlah Pelanggaran</th>
+            </tr>
+          </thead>
+          <tbody id="rekapBody">
+            <!-- Data rekap dinamis -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tabel Detail Pelanggaran -->
+      <div class="overflow-x-auto">
+        <h2 class="text-lg font-bold text-gray-700 mb-2">Detail Pelanggaran</h2>
+        <table class="w-full table-auto border-collapse border border-gray-300">
+          <thead class="bg-blue-100">
+            <tr id="tableHead">
+              <!-- Header tabel dinamis -->
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Data tabel dinamis -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <a href="index.html" class="text-sm text-gray-500 hover:text-blue-500">← Kembali ke Beranda</a>
+  </div>
+
+  <script>
+    const spreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRaR4M9iuKSDqX_k17xuuleVPiyEKtAayMUWl2iL01-MfoxgOCvPL-hjl1V6RGqHBLPs5V-vgfAi5el/pub?gid=1365700531&single=true&output=tsv';
+
+    let rawData = [];
+    let chart;
+    
+    async function fetchData() {
+      try {
+        const res = await fetch(spreadsheetURL);
+        const data = await res.text();
+        const rows = data.trim().split('\n').map(r => r.split('\t'));
+        
+        if (!rows.length) {
+          alert('Data tidak ditemukan.');
+          return;
+        }
+        
+        const headers = rows.shift();
+        rawData = rows.map(row => {
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = row[i]);
+          return obj;
+        });
+
+        populateTable(headers, rawData);
+        populateRekap(rawData);
+        populateFilter(rawData);
+        drawChart(rawData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Gagal mengambil data. Silakan cek koneksi internet atau URL spreadsheet.');
+      }
+    }
+
+    function populateTable(headers, data) {
+      const headRow = document.getElementById('tableHead');
+      const bodyTable = document.getElementById('tableBody');
+      
+      headRow.innerHTML = headers.map(h => `<th class="border p-2">${h}</th>`).join('');
+      bodyTable.innerHTML = data.map(row => `  
+        <tr>
+          ${headers.map(h => `<td class="border p-2">${row[h] || ''}</td>`).join('')}
+        </tr>
+      `).join('');
+    }
+
+    function populateRekap(data) {
+      const rekapBody = document.getElementById('rekapBody');
+      const siswaCounts = {};
+
+      data.forEach(d => {
+        siswaCounts[d['Nama Siswa']] = (siswaCounts[d['Nama Siswa']] || 0) + 1;
+      });
+
+      const rekapRows = Object.entries(siswaCounts).map(([nama, jumlah]) => `
+        <tr>
+          <td class="border p-2">${nama}</td>
+          <td class="border p-2 text-center">${jumlah}</td>
+        </tr>
+      `).join('');
+
+      rekapBody.innerHTML = rekapRows;
+    }
+
+    function populateFilter(data) {
+      const siswa = [...new Set(data.map(d => d['Nama Siswa']))];
+      const select = document.getElementById('filterNama');
+      select.innerHTML = '<option value="">Semua</option>'; // Reset dulu
+
+      siswa.forEach(nama => {
+        const option = document.createElement('option');
+        option.value = nama;
+        option.textContent = nama;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', () => {
+        const selected = select.value;
+        const filtered = selected ? rawData.filter(d => d['Nama Siswa'] === selected) : rawData;
+        populateTable(Object.keys(filtered[0] || {}), filtered);
+        populateRekap(filtered);
+        drawChart(filtered);
+      });
+    }
+
+    function drawChart(data) {
+      const labels = [...new Set(data.map(d => d['Nama Siswa']))];
+      const counts = labels.map(label => data.filter(d => d['Nama Siswa'] === label).length);
+
+      const ctx = document.getElementById('chartPelanggaran').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Jumlah Pelanggaran',
+            data: counts,
+            backgroundColor: '#3B82F6'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
+      });
+    }
+
+    fetchData();
+  </script>
+
+</body>
+</html>

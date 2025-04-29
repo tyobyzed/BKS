@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beranda - Rekap Pelanggaran</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: url('assets/images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .overlay {
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    .fade-in {
+      animation: fadeIn 2s ease-in;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(20px);}
+      100% { opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center">
+  <header class="absolute top-5 left-0 right-0 text-center text-2xl font-bold text-white">
+    <p>Selamat Datang di Sistem Rekap Pelanggaran Siswa</p>
+  </header>
+  <div class="overlay p-14 rounded-3xl shadow-2xl text-center max-w-lg fade-in">
+    <img src="assets/images/logo-sekolah.png" alt="Logo Sekolah" class="mx-auto mb-8 w-28 rounded-full">
+    <h1 class="text-2xl font-bold mb-8 text-green-600">Rekap Pelanggaran Siswa</h1>
+    <div class="flex flex-col gap-6">
+      <!-- Navigasi ke Halaman Lain menggunakan target iframe -->
+      <a href="guru.html" target="iframe" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-full transition duration-300">Guru</a>
+      <a href="login-guru.html" target="iframe" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-full transition duration-300">Login Guru</a>
+      <a href="login-siswa.html" target="iframe" class="bg-green-500 hover:bg-green-700 text-white font-bold py-4 text-lg rounded-full transition duration-300">Login Siswa</a>
+      <a href="siswa.html" target="iframe" class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-4 text-lg rounded-full transition duration-300">Siswa</a>
+    </div>
+  </div>
+</body>
+</html>
