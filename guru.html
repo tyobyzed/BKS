@@ -39,22 +39,315 @@
   </div>
   <div id="loading" class="text-center text-xl font-bold text-blue-600">Memuat data...</div>
   <div id="content" class="hidden space-y-6">
-    <!-- Konten lainnya tetap sama -->
+     <div id="content" class="hidden space-y-6">
+    <!-- Filter Section -->
+    <div class="bg-white p-4 rounded-lg shadow">
+      <div class="flex flex-wrap gap-4 items-center">
+        <div>
+          <label class="block text-gray-700 mb-1">Filter Nama Siswa:</label>
+          <select id="filterNama" class="border rounded p-2">
+            <option value="">-- Semua Siswa --</option>
+          </select>
+        </div>
+        <div class="flex gap-2 items-end">
+          <button id="applyRentang" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Terapkan</button>
+          <button id="resetFilter" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Filter -->
+    <div id="filterInfo" class="text-sm text-gray-600"></div>
+
+    <!-- Chart Section -->
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h2 class="text-xl font-bold mb-4 text-gray-700">Grafik Jumlah Pelanggaran</h2>
+      <div class="h-64">
+        <canvas id="chartPelanggaran"></canvas>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="bg-white p-4 rounded-lg shadow overflow-x-auto">
+      <h2 class="text-xl font-bold mb-4 text-gray-700">Data Pelanggaran Siswa</h2>
+      <table class="min-w-full table-auto border-collapse">
+        <thead id="tableHead" class="bg-blue-100"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h2 class="text-xl font-bold mb-4 text-gray-700">Ringkasan Data</h2>
+      <table id="summaryTable" class="w-full table-auto border-collapse"></table>
+    </div>
+
+    <!-- Rekap Section -->
+    <div class="bg-white p-4 rounded-lg shadow">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-700">Rekap Pelanggaran</h2>
+        <button onclick="printRekap()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Cetak Rekap</button>
+      </div>
+      <table id="rekapTable" class="w-full table-auto border-collapse"></table>
+    </div>
+
+    <!-- Top 5 Violations Section -->
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h2 class="text-xl font-bold mb-4 text-gray-700">Top 5 Jenis Pelanggaran Teratas</h2>
+      <div class="flex gap-6">
+        <div class="w-1/2">
+          <table id="topViolationsTable" class="w-full table-auto border-collapse">
+            <thead class="bg-blue-100">
+              <tr>
+                <th class="py-2 px-4 text-left">Jenis Pelanggaran</th>
+                <th class="py-2 px-4 text-left">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody id="topViolationsBody"></tbody>
+          </table>
+        </div>
+        <div class="w-1/2">
+          <canvas id="pieChartPelanggaran"></canvas>
+        </div>
+      </div>
+    </div>
+<a href="index.html" class="text-sm text-gray-500 hover:text-blue-500">← Kembali ke Beranda</a>
   </div>
-</div>
+
+<!-- Tidak ada perubahan di <head> -->
+
 <script>
-  function printPDF() {
-    const element = document.body;
-    const opt = {
-      margin: 0.5,
-      filename: 'dashboard-rekap-pelanggaran.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    html2pdf().set(opt).from(element).save();
+  const spreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRaR4M9iuKSDqX_k17xuuleVPiyEKtAayMUWl2iL01-MfoxgOCvPL-hjl1V6RGqHBLPs5V-vgfAi5el/pub?gid=1365700531&single=true&output=tsv';
+  let rawData = [];
+  let chart;
+  let pieChart;
+
+  async function fetchData() {
+    try {
+      const res = await fetch(spreadsheetURL);
+      if (!res.ok) throw new Error('Gagal mengambil data');
+      const data = await res.text();
+      const rows = data.trim().split('\n').map(r => r.split('\t'));
+      const headers = rows.shift();
+      rawData = rows.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      });
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').classList.remove('hidden');
+
+      populateTable(headers, rawData);
+      populateFilter(rawData);
+      drawChart(rawData);
+      updateSummary(rawData);
+      updateTopViolations(rawData);
+      updateFilterInfo(rawData.length, "Semua Siswa");
+    } catch (error) {
+      document.getElementById('loading').textContent = `Gagal memuat data: ${error.message}`;
+    }
   }
+
+  function populateTable(headers, data) {
+    const headRow = document.getElementById('tableHead');
+    const bodyTable = document.getElementById('tableBody');
+    if (data.length === 0) {
+      headRow.innerHTML = '<th class="border p-2 text-center" colspan="100%">Tidak ada data</th>';
+      bodyTable.innerHTML = '';
+      return;
+    }
+    headRow.innerHTML = '<tr>' + headers.map(h => `<th class="border p-2">${h}</th>`).join('') + '</tr>';
+    bodyTable.innerHTML = data.map(row =>   
+      `<tr>
+        ${headers.map(h => `<td class="border p-2">${row[h] || ''}</td>`).join('')}
+      </tr>`).join('');
+  }
+
+  function populateFilter(data) {
+    const siswa = [...new Set(data.map(d => d['Nama Siswa']))];
+    const select = document.getElementById('filterNama');
+    siswa.forEach(nama => {
+      const option = document.createElement('option');
+      option.value = nama;
+      option.textContent = nama;
+      select.appendChild(option);
+    });
+  }
+
+  function applyFilters() {
+    const namaSiswa = document.getElementById('filterNama').value;
+    let filteredData = [...rawData];
+
+    if (namaSiswa) {
+      filteredData = filteredData.filter(d => d['Nama Siswa'] === namaSiswa);
+    }
+
+    populateTable(Object.keys(filteredData[0] || {}), filteredData);
+    drawChart(filteredData);
+    updateSummary(filteredData);
+    updateTopViolations(filteredData); // Perbaikan: pie chart pakai filtered data
+    updateFilterInfo(filteredData.length, namaSiswa || "Semua Siswa");
+  }
+
+  function updateFilterInfo(count, siswa) {
+    const filterInfo = document.getElementById('filterInfo');
+    filterInfo.innerHTML = siswa === "Semua Siswa" 
+      ? `Menampilkan <b>semua data</b> pelanggaran (<b>${count}</b> data).`
+      : `Menampilkan <b>${count}</b> pelanggaran untuk <b>${siswa}</b>.`;
+  }
+
+  document.getElementById('applyRentang').addEventListener('click', applyFilters);
+
+  document.getElementById('resetFilter').addEventListener('click', () => {
+    document.getElementById('filterNama').value = "";
+    populateTable(Object.keys(rawData[0] || {}), rawData);
+    drawChart(rawData);
+    updateSummary(rawData);
+    updateTopViolations(rawData);
+    updateFilterInfo(rawData.length, "Semua Siswa");
+  });
+
+  function drawChart(data) {
+    const labels = [...new Set(data.map(d => d['Nama Siswa']))];
+    const counts = labels.map(label => data.filter(d => d['Nama Siswa'] === label).length);
+    const ctx = document.getElementById('chartPelanggaran').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Jumlah Pelanggaran',
+          data: counts,
+          backgroundColor: '#3B82F6'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: { enabled: true }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  function updateSummary(data) {
+    const uniqueSiswa = [...new Set(data.map(d => d['Nama Siswa']))];
+    const totalPelanggaran = data.length;
+
+    document.getElementById('summaryTable').innerHTML = 
+      `<tr>
+        <td class="py-2 px-4 font-semibold text-gray-700">Jumlah Siswa yang Melanggar</td>
+        <td class="py-2 px-4">${uniqueSiswa.length}</td>
+      </tr>
+      <tr class="border-t">
+        <td class="py-2 px-4 font-semibold text-gray-700">Jumlah Total Pelanggaran</td>
+        <td class="py-2 px-4">${totalPelanggaran}</td>
+      </tr>`;
+
+    const rekapPelanggaran = uniqueSiswa.map(siswa => {
+      const jumlahPelanggaran = data.filter(d => d['Nama Siswa'] === siswa).length;
+      return { siswa, jumlahPelanggaran };
+    });
+
+    const topRekapPelanggaran = rekapPelanggaran.sort((a, b) => b.jumlahPelanggaran - a.jumlahPelanggaran).slice(0, 10);
+
+    const rekapTable = document.getElementById('rekapTable');
+    rekapTable.innerHTML = 
+      `<thead class="bg-blue-100">
+        <tr>
+          <th class="py-2 px-4 text-left">Nama Siswa</th>
+          <th class="py-2 px-4 text-left">Jumlah Pelanggaran</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${topRekapPelanggaran.map(item => 
+          `<tr>
+            <td class="py-2 px-4">${item.siswa}</td>
+            <td class="py-2 px-4">${item.jumlahPelanggaran}</td>
+          </tr>`).join('')}`;
+  }
+
+  function updateTopViolations(data) {
+    const violationCount = data.reduce((acc, curr) => {
+      const pelanggaran = curr['Jenis Pelanggaran'];
+      acc[pelanggaran] = (acc[pelanggaran] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topViolations = Object.entries(violationCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    const topViolationsBody = document.getElementById('topViolationsBody');
+    topViolationsBody.innerHTML = topViolations.map(violation => 
+      `<tr>
+        <td class="py-2 px-4">${violation[0]}</td>
+        <td class="py-2 px-4">${violation[1]}</td>
+      </tr>`).join('');
+
+    const ctx = document.getElementById('pieChartPelanggaran').getContext('2d');
+    if (pieChart) pieChart.destroy(); // Tambahan: Hancurkan pieChart lama
+    pieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: topViolations.map(violation => violation[0]),
+        datasets: [{
+          data: topViolations.map(violation => violation[1]),
+          backgroundColor: ['#3B82F6', '#9333EA', '#F43F5E', '#FB923C', '#34D399'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { enabled: true }
+        }
+      }
+    });
+  }
+
+  function printRekap() {
+    const content = document.getElementById('rekapTable').outerHTML;
+    const windowPrint = window.open('', '', 'height=800,width=600');
+    windowPrint.document.write(content);
+    windowPrint.document.close();
+    windowPrint.print();
+  }
+
+  fetchData();
+  function printPDF() {
+  const element = document.body; // Bisa juga div tertentu, misal div utama konten
+  const opt = {
+    margin:       0.5,
+    filename:     'dashboard-rekap-pelanggaran.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  html2pdf().set(opt).from(element).save();
+}
+
+document.getElementById('exportExcel').addEventListener('click', () => {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rawData); // pakai data asli rawData
+  XLSX.utils.book_append_sheet(wb, ws, "Data Pelanggaran");
+  XLSX.writeFile(wb, 'rekap-pelanggaran.xlsx');
+});
+
 </script>
+
+
 </body>
 </html>
