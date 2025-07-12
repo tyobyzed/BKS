@@ -9,24 +9,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-
   <style>
-    /* Mengatur ukuran pie chart menjadi 30% dari ukuran aslinya */
     #pieChartPelanggaran {
       width: 50% !important;
       height: auto !important;
     }
   </style>
-
 </head>
 <body class="bg-gray-50 min-h-screen p-4">
-
 <div class="max-w-7xl mx-auto">
   <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
     <div class="mb-4 md:mb-0">
-    <a href="index.html" class="text-blue-500 hover:underline mb-4 inline-block">← Kembali ke Beranda</a>
-
+      <a href="index.html" class="text-blue-500 hover:underline mb-4 inline-block">← Kembali ke Beranda</a>
       <h1 class="text-3xl font-bold text-blue-600 mb-1">Dashboard Guru</h1>
       <p class="text-gray-600">Rekap Pelanggaran Siswa</p>
     </div>
@@ -34,16 +28,16 @@
       <a href="https://tally.so/r/n9x6KG" target="_blank" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition">
         Tambah Pelanggaran
       </a>
+      <a href="https://gurubkkonselor.com/guru/login" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition">
+        Masukkan Angket
+      </a>
       <button id="exportExcel" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
         Export Excel
       </button>
       <button onclick="printPDF()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Cetak Semua ke PDF</button>
-
     </div>
   </div>
-
   <div id="loading" class="text-center text-xl font-bold text-blue-600">Memuat data...</div>
-
   <div id="content" class="hidden space-y-6">
     <!-- Filter Section -->
     <div class="bg-white p-4 rounded-lg shadow">
